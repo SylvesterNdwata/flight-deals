@@ -7,9 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-amadeus_api_secret = os.environ.get("amadeus_api_secret")
-amadeus_api_key = os.environ.get("amadeus_api_key")
-
 data_manager = DataManager()
 flight_search = FlightSearch()
 
