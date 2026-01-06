@@ -25,3 +25,13 @@ class DataManager:
         
         self.response = requests.put(url=f"{self.url}/{id}", json=self.params, headers=self.headers)
         return self.response.json()
+    
+    def update_flight_price(self, price, id):
+        self.params = {
+            "price": {
+                "lowestPrice": price
+            }
+        }
+        
+        self.response = requests.put(url=f"{self.url}/{id}", json=self.params, headers=self.headers)
+        return self.response.json()

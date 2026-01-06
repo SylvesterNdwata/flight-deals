@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 import requests
 from pprint import pprint
+import datetime as dt
+from dateutil.relativedelta import relativedelta
 
 load_dotenv()
 
@@ -10,6 +12,15 @@ class FlightSearch:
         self.amadeus_api_secret = os.environ.get("amadeus_api_secret")
         self.amadeus_api_key = os.environ.get("amadeus_api_key")
         self.token = os.environ.get("amadeus_access_token")
+        self.today = dt.date.today()
+        self.six_months_from_now = self.today + relativedelta(months=6)
+        dates = []
+        current = self.today
+        while current <= self.six_months_from_now:
+            dates.append(current)
+            current += dt.timedelta(days=1)
+        
+        self.formatted_dates = [date.strftime("%Y-%m-%d") for date in dates]
 
     
     def get_iata_code(self, city):
@@ -27,12 +38,7 @@ class FlightSearch:
         self.response = requests.get(url=self.url, params=parameters, headers=self.headers)
         self.codes = self.response.json()
         
-        if "error" in self.codes or self.response.status_code == 401 or "errors" in self.codes:
-            new_token = self.get_new_token()
-            self.token = f"Bearer {new_token['access_token']}"
-            os.environ["amadeus_access_token"] = self.token
-            self.headers["Authorization"] = self.token
-            
+        if self.generate_token_when_error(self.codes, self.response.status_code):
             self.response = requests.get(url=self.url, params=parameters, headers=self.headers)
             self.codes = self.response.json()
         
@@ -56,4 +62,41 @@ class FlightSearch:
         self.response = requests.post(url=self.url, headers=self.headers, data=self.token)
         return self.response.json()
     
+    def get_cheap_flights(self, city_iatacode):
     
+        self.url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
+
+        self.headers = {
+            "Authorization": self.token
+        }
+
+        parameters = {
+            "originLocationCode": "LON",
+            "destinationLocationCode": city_iatacode,
+            "departureDate": self.today,
+            "adults": 1,
+            "max": 1
+        }
+        
+        self.response = requests.get(url=self.url, headers=self.headers, params=parameters)
+        self.prices = self.response.json()
+
+        if self.generate_token_when_error(self.prices, self.response.status_code):       
+            self.response = requests.get(url=self.url, params=parameters, headers=self.headers)
+            self.prices = self.response.json()
+
+        if "data" not in self.prices or len(self.prices["data"]) == 0:
+            return None
+        else:
+            return self.prices["data"][0]["price"]["grandTotal"]
+        
+    def generate_token_when_error(self, response, status_code):
+        if "error" in response or status_code == 401 or "errors" in response:
+            new_token = self.get_new_token()
+            self.token = f"Bearer {new_token['access_token']}"
+            os.environ["amadeus_access_token"] = self.token
+            self.headers["Authorization"] = self.token
+            
+            return True
+        return False
+        
