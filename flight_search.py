@@ -1,4 +1,5 @@
 import os
+import time
 from dotenv import load_dotenv
 import requests
 from pprint import pprint
@@ -103,7 +104,10 @@ class FlightSearch:
             if self.cheapest_price is None or price < self.cheapest_price:
                 self.cheapest_price = price
                 self.cheapest_date = date
+            
+            time.sleep(0.2)
         return self.cheapest_price, self.cheapest_date
+
     
     def generate_token_when_error(self, response, status_code):
         if "error" in response or status_code == 401 or "errors" in response:
