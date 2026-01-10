@@ -65,48 +65,53 @@ class FlightSearch:
     
     def get_cheap_flights(self, city_iatacode):
         self.cheapest_price = None
-        for date in self.formatted_dates:
-            conditions = (
-                 not city_iatacode or
-                 len(city_iatacode) != 3 or
-                 city_iatacode == "EMPTY"
-            )
-            if conditions:
-                return None
-            url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
+        # for date in self.formatted_dates:
+        conditions = (
+                not city_iatacode or
+                len(city_iatacode) != 3 or
+                city_iatacode == "EMPTY"
+        )
+        if conditions:
+            return None
+        url = "https://test.api.amadeus.com/v2/shopping/flight-offers"
 
-            headers = {
-                "Authorization": self.token
-            }
+        headers = {
+            "Authorization": self.token
+        }
 
-            parameters = {
-                "originLocationCode": "LON",
-                "destinationLocationCode": city_iatacode,
-                "departureDate": date,
-                "adults": 1,
-            }
-            try:
-                self.response = requests.get(url=url, headers=headers, params=parameters, timeout=10)
-            except requests.RequestException:
-                continue
-            except requests.exceptions.Timeout:
-                continue
+        parameters = {
+            "originLocationCode": "LON",
+            "destinationLocationCode": city_iatacode,
+            "departureDate": self.today.strftime("%Y-%m-%d"),
+            "adults": 1,
+            
+        }
+        # try:
+        #     self.response = requests.get(url=url, headers=headers, params=parameters, timeout=10)
+        # except requests.RequestException:
+        #     continue
+        # except requests.exceptions.Timeout:
+        #     continue
+        # self.prices = self.response.json()
+        self.response = requests.get(url=url, params=parameters, headers=headers)
+        self.prices = self.response.json()
+
+        if self.generate_token_when_error(self.prices, self.response.status_code):       
+            self.response = requests.get(url=url, params=parameters, headers=headers)
             self.prices = self.response.json()
 
-            if self.generate_token_when_error(self.prices, self.response.status_code):       
-                self.response = requests.get(url=url, params=parameters, headers=headers)
-                self.prices = self.response.json()
+        if "data" not in self.prices or len(self.prices["data"]) == 0:
+            return None
 
-            if "data" not in self.prices or len(self.prices["data"]) == 0:
-                continue
-
-            price = float(self.prices["data"][0]["price"]["grandTotal"])
-            if self.cheapest_price is None or price < self.cheapest_price:
-                self.cheapest_price = price
-                self.cheapest_date = date
-            
-            time.sleep(0.2)
-        return self.cheapest_price, self.cheapest_date
+        # price = float(self.prices["data"][0]["price"]["grandTotal"])
+        # if self.cheapest_price is None or price < self.cheapest_price:
+        #     self.cheapest_price = price
+        #     self.cheapest_date = date
+        
+        # time.sleep(0.2)
+        # return self.cheapest_price, self.cheapest_date
+        
+        return float(self.prices["data"][0]["price"]["grandTotal"]), self.today.strftime("%Y-%m-%d")
 
     
     def generate_token_when_error(self, response, status_code):

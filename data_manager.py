@@ -6,7 +6,8 @@ load_dotenv()
 
 class DataManager:
     def __init__(self):
-        self.url = "https://api.sheety.co/5045b2d0c914791f25027f99d5619b22/flightDeals/prices/"
+        self.url = "https://api.sheety.co/5b0c2b09839e2540abf1b693aef17cd4/flightDeals/prices"
+        self.sheety_email_url = os.environ.get("sheety_emails_url")
         self.headers = {
             "Authorization": os.environ.get("sheety_auth")
         }
@@ -35,3 +36,10 @@ class DataManager:
         
         self.response = requests.put(url=f"{self.url}/{id}", json=self.params, headers=self.headers)
         return self.response.json()
+    
+    def get_customer_emails(self):
+        sheety_emails_url = self.sheety_email_url
+        self.response = requests.get(url=sheety_emails_url, headers=self.headers)
+        self.emails = self.response.json()
+        self.user_emails = [user["whatIsYourEmailAddress?"] for user in self.emails["users"]]
+        return self.user_emails
